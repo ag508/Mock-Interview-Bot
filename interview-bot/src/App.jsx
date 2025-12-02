@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Bot, Settings, Play, RefreshCw, FileText, Download, Award, Briefcase, Code, Cpu } from 'lucide-react';
+import { Send, User, Bot, Settings, Play, RefreshCw, FileText, Download, Award, Briefcase, Code, Cpu, Mic, MicOff } from 'lucide-react';
 
 // --- Configuration ---
 // Note: In this environment, we use the system-provided key. 
@@ -27,6 +27,12 @@ const MockInterviewBot = () => {
   const chatEndRef = useRef(null);
   const textareaRef = useRef(null);
 
+  // Voice Input State
+  const [isListening, setIsListening] = useState(false);
+  const [interimInput, setInterimInput] = useState('');
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef(null);
+
   // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
@@ -42,6 +48,55 @@ const MockInterviewBot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [chatHistory, screen]);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      setSpeechSupported(true);
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+
+        if (final) {
+          setCurrentInput(prev => {
+            const prefix = prev && !prev.endsWith(' ') && prev.length > 0 ? ' ' : '';
+            return prev + prefix + final;
+          });
+          setInterimInput('');
+        } else {
+          setInterimInput(interim);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+        setInterimInput('');
+      };
+
+      recognition.onend = () => {
+        // Stop listing state when the engine stops
+        setIsListening(false);
+        setInterimInput('');
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -135,9 +190,18 @@ const MockInterviewBot = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!currentInput.trim()) return;
+    // Combine current committed input with any pending interim input before sending
+    // This ensures if the user hits enter while "ghost text" is visible, it gets sent.
+    const finalMsg = currentInput + interimInput;
+    if (!finalMsg.trim()) return;
 
-    const userMsg = { role: 'user', text: currentInput };
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+    setInterimInput('');
+
+    const userMsg = { role: 'user', text: finalMsg };
     const updatedHistory = [...chatHistory, userMsg];
 
     setChatHistory(updatedHistory);
@@ -156,8 +220,30 @@ const MockInterviewBot = () => {
     setLoading(false);
   };
 
+  const toggleListening = () => {
+    if (!recognitionRef.current) return;
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("Microphone start failed", err);
+        setIsListening(false);
+      }
+    }
+  };
+
   const endInterview = async () => {
     setLoading(true);
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+    setInterimInput('');
 
     const visibleHistory = chatHistory.filter(m => m.role !== 'system_hidden');
     const systemPrompt = chatHistory.find(m => m.role === 'system_hidden')?.text;
@@ -381,26 +467,46 @@ const MockInterviewBot = () => {
         <div className="relative">
           <textarea
             ref={textareaRef}
-            value={currentInput}
-            onChange={(e) => setCurrentInput(e.target.value)}
+            value={currentInput + (interimInput ? (currentInput && !currentInput.endsWith(' ') && currentInput.length > 0 ? ' ' : '') + interimInput : '')}
+            onChange={(e) => {
+              setCurrentInput(e.target.value);
+              setInterimInput(''); // Clear interim if user manually types to avoid conflicts
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSendMessage();
               }
             }}
-            placeholder="Type your answer here..."
-            className="w-full pl-4 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none max-h-32 shadow-sm overflow-y-auto"
+            placeholder={isListening ? "Listening..." : "Type your answer here..."}
+            className={`w-full pl-4 pr-24 py-3 border rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none max-h-32 shadow-sm overflow-y-auto transition-colors ${isListening ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
             rows={1}
             disabled={loading}
           />
-          <button
-            onClick={handleSendMessage}
-            disabled={loading || !currentInput.trim()}
-            className="absolute right-2 top-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+
+          <div className="absolute right-2 top-2 flex space-x-1">
+            {speechSupported && (
+              <button
+                onClick={toggleListening}
+                disabled={loading}
+                className={`p-2 rounded-lg transition-all ${isListening
+                    ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                title={isListening ? "Stop Recording" : "Start Recording"}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+            )}
+
+            <button
+              onClick={handleSendMessage}
+              disabled={loading || (!currentInput.trim() && !interimInput.trim())}
+              className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <p className="text-xs text-center text-gray-400 mt-2">
           Press Enter to send. Shift+Enter for new line.
