@@ -52,13 +52,34 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
+## Docker Installation
+
+You can also run the application using Docker.
+
+1.  Pull the image from Docker Hub:
+    ```bash
+    docker pull aneesh95/mock-interview-bot:latest
+    ```
+
+2.  Run the container:
+    ```bash
+    docker run -p 80:80 aneesh95/mock-interview-bot:latest
+    ```
+
+3.  Open [http://localhost](http://localhost) in your browser.
+
 ## Deployment
 
-This project is configured for deployment to **GitHub Pages**.
+This project is configured for deployment to **GitHub Pages** and **Docker Hub**.
 
 1.  Push your changes to the `main` branch.
 2.  Go to your repository **Settings** > **Secrets and variables** > **Actions**.
-3.  Create a **New repository secret** named `VITE_GEMINI_API_KEY` with your API key value.
-4.  The GitHub Action will automatically build and deploy the app.
+3.  Add the following secrets:
+    - `VITE_GEMINI_API_KEY`: Your Google Gemini API Key.
+    - `DOCKER_USERNAME`: Your Docker Hub username (`aneesh95`).
+    - `DOCKER_PASSWORD`: Your Docker Hub password or access token.
+4.  The GitHub Action will automatically:
+    - Build and deploy the web app to GitHub Pages.
+    - Build and push the Docker image to Docker Hub.
 
 **Security Note:** Since this is a client-side application, the API key is embedded in the build. Restrict your API key usage in the Google Cloud Console to specific domains (e.g., your GitHub Pages URL) to prevent unauthorized use.
