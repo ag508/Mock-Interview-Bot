@@ -8,6 +8,7 @@ A React-based AI Mock Interview application powered by Google Gemini.
 - **AI-Powered**: Uses Gemini Flash to conduct realistic interviews.
 - **Real-time Feedback**: Get instant feedback on your answers.
 - **Detailed Analysis**: Receive a comprehensive report with strengths, improvements, and a rating at the end.
+- **Voice Input**: Speak your answers using the microphone with real-time transcription.
 - **Transcript Download**: Download the full interview transcript for review.
 
 ## Prerequisites
@@ -68,18 +69,4 @@ You can also run the application using Docker.
 
 3.  Open [http://localhost](http://localhost) in your browser.
 
-## Deployment
 
-This project is configured for deployment to **GitHub Pages** and **Docker Hub**.
-
-1.  Push your changes to the `main` branch.
-2.  Go to your repository **Settings** > **Secrets and variables** > **Actions**.
-3.  Add the following secrets:
-    - `VITE_GEMINI_API_KEY`: Your Google Gemini API Key.
-    - `DOCKER_USERNAME`: Your Docker Hub username (`aneesh95`).
-    - `DOCKER_PASSWORD`: Your Docker Hub password or access token.
-4.  The GitHub Action will automatically:
-    - Build and deploy the web app to GitHub Pages.
-    - Build and push the Docker image to Docker Hub.
-
-**Security Note:** Since this is a client-side application, the API key is embedded in the build. Restrict your API key usage in the Google Cloud Console to specific domains (e.g., your GitHub Pages URL) to prevent unauthorized use.
