@@ -8,6 +8,7 @@ A React-based AI Mock Interview application powered by Google Gemini.
 - **AI-Powered**: Uses Gemini Flash to conduct realistic interviews.
 - **Real-time Feedback**: Get instant feedback on your answers.
 - **Detailed Analysis**: Receive a comprehensive report with strengths, improvements, and a rating at the end.
+- **Video Interface**: Immersive Google Meet-style video interface with webcam support.
 - **Voice Input**: Speak your answers using the microphone with real-time transcription.
 - **Transcript Download**: Download the full interview transcript for review.
 
