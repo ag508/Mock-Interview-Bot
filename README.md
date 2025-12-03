@@ -1,4 +1,6 @@
-# Mock Interview Bot
+# Mock Interview Bot  
+
+[![Try It Here](https://img.shields.io/badge/Try%20It-Online-brightgreen?style=for-the-badge)](https://ag508.github.io/Mock-Interview-Bot/)
 
 A React-based AI Mock Interview application powered by Google Gemini.
 
